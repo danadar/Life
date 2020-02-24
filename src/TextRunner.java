@@ -1,27 +1,39 @@
-public class TextRunner extends LifeGrid{
+import java.util.Scanner;
 
-    private TextRunner(int w, int h) {
-        super(w, h);
-    }
-
-    @Override
-    protected void next() {
-        super.next();
-        System.out.println(this);
-    }
+public class TextRunner {
 
     public static void main(String[] args) {
-        LifeGrid lg = new TextRunner(15,10);
+        Scanner scan = new Scanner(System.in);
+        System.out.print("Width: ");
+        int width = scan.nextInt();
+        System.out.print("Height: ");
+        int height = scan.nextInt();
 
-        lg.change(2,1);
-        lg.change(2,2);
-        lg.change(2,3);
+        LifeGrid lg = new LifeGrid(width,height, 0);
+
+        while(true)
+        {
+            System.out.println(lg);
+            System.out.println("Enter an option:");
+            System.out.println("0: exit");
+            System.out.println("1: change");
+            System.out.println("2: next");
+            int option = scan.nextInt();
+            if(option == 0)
+                break;
+            else if (option == 1) {
+                System.out.print("Enter a row: ");
+                int row = scan.nextInt();
+                System.out.print("Enter a col: ");
+                int col = scan.nextInt();
+                lg.change(row,col, 0);
+            } else if (option == 2) {
+                lg.next();
+            }
+        }
+        System.out.println("Goodbye.");
 
 
-        lg.change(0,5);
-        lg.change(0,6);
-        lg.change(0,7);
-        lg.change(0,8);
     }
 
 

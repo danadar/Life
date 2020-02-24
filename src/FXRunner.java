@@ -2,59 +2,69 @@ import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.application.Application;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.geometry.Orientation;
+import javafx.geometry.Point3D;
 import javafx.geometry.Pos;
-import javafx.scene.Scene;
+import javafx.scene.*;
 import javafx.scene.control.Button;
 import javafx.scene.control.Slider;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.FlowPane;
-import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
+import javafx.scene.paint.PhongMaterial;
+import javafx.scene.shape.Box;
+import javafx.scene.transform.Rotate;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
 public class FXRunner extends Application {
 
+    private static final int WIDTH = 800;
+    private static final int HEIGHT = 600;
+    public static final int GRIDWIDTH = 12;
+    public static final int GRIDHEIGHT = 12;
+    public static final int GRIDDEPTH = 10;
+
     private LifeGrid lg;
-    private GridPane grid;
+    private final FlowPane buttons;
+    private final Group group;
+    private Point3D cursor;
+
     public FXRunner() {
         super();
-        lg = new LifeGrid(20,11);
-        grid = new GridPane();
-        grid.setHgap(1);
-        grid.setVgap(2);
-        grid.setStyle("-fx-background-color: black;");
+        lg = new LifeGrid(GRIDWIDTH, GRIDHEIGHT, GRIDDEPTH);
 
+        buttons = new FlowPane();
+        group = new Group();
+        cursor = new Point3D(0,0,0);
     }
 
     public static void main(String[] args) {
         launch(args);
     }
 
+    private void addButton(String text, EventHandler<ActionEvent> e){
+        Button b = new Button(text);
+        b.setOnAction(e);
+        buttons.getChildren().add(b);
+    }
+
     @Override
     public void start(Stage primaryStage) {
-        int width = 500;
-        int height = 400;
-
 
         primaryStage.setTitle("Game of Life");
-        int startCol = 6;
-        int startRow = 4;
-        for(int i = startCol; i <=startCol + 7; i++){
-            lg.change(startRow,i);
-            lg.change(startRow + 1,i);
-            lg.change(startRow + 2,i);
-        }
-        lg.change(startRow + 1,startCol + 1);
-        lg.change(startRow + 1,startCol + 7 - 1);
 
 
 
-        Slider slider = new Slider(1,20,5);
+
+        Slider slider = new Slider(.5,20,3);
 
 
         Animation timeline = new Timeline(
-                new KeyFrame(Duration.millis(5000), e ->{
+                new KeyFrame(Duration.millis(1000), e ->{
                     lg.next();
                     update();
                 })
@@ -65,63 +75,105 @@ public class FXRunner extends Application {
 
 
 
-        Button startBtn = new Button("Start");
-        startBtn.setOnAction(event -> timeline.play());
-        Button stopBtn = new Button("Stop");
-
-        stopBtn.setOnAction(event -> timeline.stop());
-        Button nextBtn = new Button("Next");
-
-        nextBtn.setOnAction(event -> {
+        addButton("Start",e -> timeline.play());
+        addButton("Stop",e -> timeline.stop());
+        addButton("Next",e -> {
             lg.next();
             update();
         });
+        addButton("Undo",e -> {
+            lg.prev();
+            update();
+        });
+        addButton("Clear",e -> {
+            lg.clearBoard(); update();
+        });
 
-        final int size = width/lg.cols()-1;
+        final int bSize = 20;
+
 
         for(int i = 0; i < lg.rows(); i++) {
             for (int j = 0; j < lg.cols(); j++) {
-                Button b = new Button();
-                b.setMaxSize(size,size);
-                b.setMinSize(size,size);
-                if (lg.get(i, j))
-                    b.setStyle("-fx-background-color: #00FF00");
-                else
-                    b.setStyle("-fx-background-color: #FF0000");
+                for (int k = 0; k < lg.depth(); k++) {
+                    Box b = new Box(bSize,bSize,bSize);
+                    b.translateXProperty().setValue(i * (bSize + 6));
+                    b.translateYProperty().setValue(j * (bSize + 6));
+                    b.translateZProperty().setValue(k * (bSize + 6));
 
-                final int finalI = i;
-                final int finalJ = j;
-                b.setOnAction( e-> {
-                        lg.change(finalI, finalJ);
-                        update();
-                    }
-                );
-
-                grid.add(b, j, i);
+                    group.getChildren().add(b);
+                }
             }
         }
 
+        update();
 
 
-        FlowPane buttons = new FlowPane();
         buttons.setAlignment(Pos.CENTER);
         buttons.setOrientation(Orientation.HORIZONTAL);
-
-        buttons.getChildren().add(startBtn);
-        buttons.getChildren().add(stopBtn);
-        buttons.getChildren().add(nextBtn);
-
         buttons.setHgap(10);
 
 
-        VBox root = new VBox(20,grid,buttons,slider);
+        SubScene content = new SubScene(group, WIDTH, HEIGHT);
+
+        Camera cam = new PerspectiveCamera();
+        content.setCamera(cam);
+        content.setFill(Color.BISQUE);
+
+        VBox root = new VBox(20,content, buttons,slider);
+
         root.setAlignment(Pos.CENTER);
         root.setFillWidth(false);
 
+        group.translateXProperty().setValue(content.getWidth()/2 - group.getBoundsInParent().getWidth()/2);
+        group.translateYProperty().setValue(content.getHeight()/2 - group.getBoundsInParent().getHeight()/2);
 
 
-        Scene scene = new Scene(root, width + 20,height);
 
+        Scene scene = new Scene(root, WIDTH, HEIGHT + 100);
+
+        primaryStage.addEventHandler(KeyEvent.KEY_PRESSED,e -> {
+            switch (e.getCode())
+            {
+                case A:
+                    group.setRotationAxis(Rotate.Y_AXIS);
+                    group.setRotate(group.getRotate() + 5);
+                    break;
+                case D:
+                    group.setRotationAxis(Rotate.Y_AXIS);
+                    group.setRotate(group.getRotate() - 5);
+                    break;
+                case W:
+                    group.setRotationAxis(Rotate.X_AXIS);
+                    group.setRotate(group.getRotate() - 5);
+                    break;
+                case S:
+                    group.setRotationAxis(Rotate.X_AXIS);
+                    group.setRotate(group.getRotate() + 5);
+                    break;
+                case I:
+                    cursor = new Point3D(cursor.getX(), (cursor.getY() + GRIDHEIGHT - 1) % GRIDHEIGHT, cursor.getZ());
+                    break;
+                case K:
+                    cursor = new Point3D(cursor.getX(), (cursor.getY() + 1) % GRIDHEIGHT, cursor.getZ());
+                    break;
+                case J:
+                    cursor = new Point3D((cursor.getX() + GRIDWIDTH - 1) % GRIDWIDTH, cursor.getY(), cursor.getZ());
+                    break;
+                case L:
+                    cursor = new Point3D((cursor.getX() + 1) % GRIDWIDTH, cursor.getY(), cursor.getZ());
+                    break;
+                case U:
+                    cursor = new Point3D(cursor.getX(), cursor.getY(), (cursor.getZ() + 1) % GRIDDEPTH);
+                    break;
+                case O:
+                    cursor = new Point3D(cursor.getX(), cursor.getY(), (cursor.getZ() + GRIDDEPTH - 1) % GRIDDEPTH);
+                    break;
+                case P:
+                    lg.change((int)cursor.getX(),(int)cursor.getY(),(int)cursor.getZ());
+                    break;
+            }
+            update();
+        });
 
         primaryStage.setScene(scene);
         primaryStage.show();
@@ -129,15 +181,21 @@ public class FXRunner extends Application {
     }
 
     private void update() {
-
-        int index = 0;
+        int count = 0;
         for(int i = 0; i < lg.rows(); i++) {
             for (int j = 0; j < lg.cols(); j++) {
-                Button b = (Button) grid.getChildren().get(index++);
-                if (lg.get(i, j))
-                    b.setStyle("-fx-background-color: #00ff00");
-                else
-                    b.setStyle("-fx-background-color: #FF0000");
+                for (int k = 0; k < lg.depth(); k++) {
+
+                    PhongMaterial mat = new PhongMaterial();
+                    if(i == cursor.getX() && j == cursor.getY() && k == cursor.getZ()){
+                        mat.setDiffuseColor(Color.rgb(52,185,255,.8));
+                    } else if(lg.get(i,j,k)) {
+                        mat.setDiffuseColor(Color.rgb(255,0,255,.8));
+                    } else {
+                        mat.setDiffuseColor(Color.rgb(0,0,0,0.05));
+                    }
+                    ((Box)(group.getChildren().get(count++))).setMaterial(mat);
+                }
             }
         }
     }
