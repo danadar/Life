@@ -19,7 +19,7 @@ public class FXRunner extends Application {
     private GridPane grid;
     public FXRunner() {
         super();
-        lg = new LifeGrid(20,11);
+        lg = new LifeGrid(40,20);
         grid = new GridPane();
         grid.setHgap(1);
         grid.setVgap(2);
@@ -33,24 +33,24 @@ public class FXRunner extends Application {
 
     @Override
     public void start(Stage primaryStage) {
-        int width = 500;
-        int height = 400;
+        int width = 1000;
+        int height = 800;
 
 
         primaryStage.setTitle("Game of Life");
-        int startCol = 6;
-        int startRow = 4;
-        for(int i = startCol; i <=startCol + 7; i++){
+        int startCol = lg.cols()/2;
+        int startRow = lg.rows()/2;
+        for(int i = startCol - 4; i <startCol + 4; i++){
+            lg.change(startRow - 1,i);
             lg.change(startRow,i);
             lg.change(startRow + 1,i);
-            lg.change(startRow + 2,i);
         }
-        lg.change(startRow + 1,startCol + 1);
-        lg.change(startRow + 1,startCol + 7 - 1);
+        lg.change(startRow,startCol - 3);
+        lg.change(startRow,startCol + 2);
 
 
 
-        Slider slider = new Slider(1,20,5);
+        Slider slider = new Slider(1,100,5);
 
 
         Animation timeline = new Timeline(
@@ -77,6 +77,17 @@ public class FXRunner extends Application {
             update();
         });
 
+        Button clearBtn = new Button("Clear");
+        clearBtn.setOnAction(e -> {
+            lg.clearBoard(); update();
+        });
+        
+        Button undoBtn = new Button("Undo");
+        undoBtn.setOnAction(e ->{
+        	lg.undo();
+        	update();
+        });
+        
         final int size = width/lg.cols()-1;
 
         for(int i = 0; i < lg.rows(); i++) {
@@ -110,6 +121,8 @@ public class FXRunner extends Application {
         buttons.getChildren().add(startBtn);
         buttons.getChildren().add(stopBtn);
         buttons.getChildren().add(nextBtn);
+        buttons.getChildren().add(clearBtn);
+        buttons.getChildren().add(undoBtn);
 
         buttons.setHgap(10);
 
